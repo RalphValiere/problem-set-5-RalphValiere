@@ -19,6 +19,7 @@ include-before-body:
 output:
   echo: false
   eval: false
+
 ---
 
 **Due 11/9 at 5:00PM Central. Worth 100 points + 10 points extra credit.**
@@ -85,7 +86,7 @@ After exploring the webpage, we have realized:
  1- The 'links' are located in 'a' tags (good thing we will be looking only in the unordered list we extracted)
  2- The "titles" are located inside those same 'a' tags
  3- The 'date' data are located inside 'span' tags
- 4- The 'category' data are located inside 'li' tagas with attribute: 'class_ = "display-inline-block usa-tag text-no-lowercase text-base-darkest bg-base-lightest margin-right-1"'.
+ 4- The 'category' data are located inside 'li' tags with attribute: 'class_ = "display-inline-block usa-tag text-no-lowercase text-base-darkest bg-base-lightest margin-right-1"'.
 We will retrive each of them separately and then append them into a tidy dataframe
 
 Now, we will retrieve the list of links first.
@@ -134,21 +135,68 @@ for index in range(len(list_dates_final)):
   else:
     pass
 
-list_dates_final
+# Finally, we can convert those dates into date type
+for index in range(len(list_dates_final)):
+  list_dates_final[index] = datetime.datetime.strptime(list_dates_final[index], '%m/%d/%Y')
 ```
+
+The next step is to extract the categories, which are in "li" tags with attribute class_ = "display-inline-block usa-tag text-no-lowercase text-base-darkest bg-base-lightest margin-right-1"
 
 ```{python}
-a = 'Manman'
-
-a.replace('an', 'SSASA')
+list_category_ongoing = list_enforce_firstpage[0].find_all('li', class_ = "display-inline-block usa-tag text-no-lowercase text-base-darkest bg-base-lightest margin-right-1")
+list_category_final = [] # Initializing the list of category we will append
+for li_tags in list_category_ongoing:
+  category_text = li_tags.text
+  list_category_final.append(category_text)
 ```
 
-  
+Finally, now let's store those data in a tidy dataframe
+
+```{python}
+enforcement_action_data = pd.DataFrame({
+  'title_enforcement' : list_title_final,
+  'date_enforcement' : list_dates_final,
+  'category_enforcement' : list_category_final,
+  'link_enforcement' : list_links_final
+})
+```
+We printed in two segments to have the table size fit the page width when knitting the quarto file
+
+```{python}
+# Segment 1
+enforcement_action_data[['title_enforcement', 'date_enforcement']].head(5)
+```
+```{python}
+# Segment 2
+enforcement_action_data[['category_enforcement', 'link_enforcement']].head(5)
+```
+
 ### 2. Crawling (PARTNER 1)
 
-```{python}
+For this step, we will run a "for loop" to collect the name of the agency involved, from each of the links in the dataframe. We made sure to check each of the link to verify is this information is available.
 
+Moreover, we also found that the information about the agency that is involved is located in 'li' tag nested in a 'ul' tag with attribute class="usa-list usa-list--unstyled margin-y-2" and it is always the second 'li' tag inside the 'ul' tag. There a 'span' tag inside those 'li' tags but we will ignore them as they content identifier for the text ('Agency' in our case).
+This will make the extraction easier.
+
+```{python}
+list_agency_final = [] # Initializing the list of agency we will append
+
+# Building the for loop to go over each link in "enforcement_action_data" and retrieve the agency name, and store it in "list_agency_final".
+for link in enforcement_action_data['link_enforcement']:
+  enforcement_retrived = requests.get(link)
+  enforcement_content = BeautifulSoup(enforcement_retrived.content, 'lxml')
+  box_agency = enforcement_content.find_all('ul', class_ = "usa-list usa-list--unstyled margin-y-2")
+  agency_info_ongoing = box_agency[0].find_all('li')[1].text
+  agency_info_final = agency_info_ongoing.replace('Agency:', '')
+  list_agency_final.append(agency_info_final)
 ```
+
+Let's append the list of agencies to the dataframe now.
+
+```{python}
+enforcement_action_data['agency_enforcement'] = list_agency_final
+```
+
 
 ## Step 2: Making the scraper dynamic
 
