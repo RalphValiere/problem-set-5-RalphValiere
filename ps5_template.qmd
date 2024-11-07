@@ -1,0 +1,224 @@
+---
+title: "title"
+author: "author"
+date: "date"
+format: 
+  pdf:
+    include-in-header: 
+       text: |
+         \usepackage{fvextra}
+         \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+include-before-body:
+  text: |
+    \RecustomVerbatimEnvironment{verbatim}{Verbatim}{
+      showspaces = false,
+      showtabs = false,
+      breaksymbolleft={},
+      breaklines
+    }
+output:
+  echo: false
+  eval: false
+---
+
+**Due 11/9 at 5:00PM Central. Worth 100 points + 10 points extra credit.**
+
+## Submission Steps (10 pts)
+1. This problem set is a paired problem set.
+2. Play paper, scissors, rock to determine who goes first. Call that person *Partner 1*.
+    - Partner 1 (name and cnet ID):
+    - Partner 2 (name and cnet ID):
+3. Partner 1 will accept the `ps5` and then share the link it creates with their partner. You can only share it with one partner so you will not be able to change it after your partner has accepted. 
+4. "This submission is our work alone and complies with the 30538 integrity policy." Add your initials to indicate your agreement: \*\*\_\_\*\* \*\*\_\_\*\*
+5. "I have uploaded the names of anyone else other than my partner and I worked with on the problem set **[here](https://docs.google.com/forms/d/185usrCREQaUbvAXpWhChkjghdGgmAZXA3lPWpXLLsts/edit)**"  (1 point)
+6. Late coins used this pset: \*\*\_\_\*\* Late coins left after submission: \*\*\_\_\*\*
+7. Knit your `ps5.qmd` to an PDF file to make `ps5.pdf`, 
+    * The PDF should not be more than 25 pages. Use `head()` and re-size figures when appropriate. 
+8. (Partner 1): push  `ps5.qmd` and `ps5.pdf` to your github repo.
+9. (Partner 1): submit `ps5.pdf` via Gradescope. Add your partner on Gradescope.
+10. (Partner 1): tag your submission in Gradescope
+
+\newpage
+
+```{python}
+import os
+import datetime
+import time
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import altair as alt
+import geopandas as gpd
+import shapely
+import bs4
+from bs4 import BeautifulSoup
+import requests
+import warnings
+import numpy as np
+from shapely import Polygon, Point
+from numpy import mean, nan # PS: Some version of numpy only consider NaN. So graders should consider this when this chunk of code is ran.
+alt.renderers.enable("png")
+warnings.filterwarnings('ignore')
+```
+
+
+## Step 1: Develop initial scraper and crawler
+
+### 1. Scraping (PARTNER 1)
+
+```{python}
+hhsoig_enforce_path = r'https://oig.hhs.gov/fraud/enforcement/'
+
+hhsoig_enforce_retrived = requests.get(hhsoig_enforce_path)
+
+hhsoig_enforce_content = BeautifulSoup(hhsoig_enforce_retrived.content, 'lxml') # We can use 'html.parser' if 'lxml' is not working
+```
+
+We have identified the block of list element we want to extract, which are nest inside a "ul" tag. We have identified the specific attribute for this block of elements and will extract it.
+
+```{python}
+# Retrieving the unordered list ('ul') we will need to find the list of enforcement in the first page on the website. This will present us from retrieving all the elements ('li') from this website. Only retrieving the one we want.
+list_enforce_firstpage = hhsoig_enforce_content.find_all('ul', class_ = "usa-card-group padding-y-0")
+```
+
+After exploring the webpage, we have realized:
+ 1- The 'links' are located in 'a' tags (good thing we will be looking only in the unordered list we extracted)
+ 2- The "titles" are located inside those same 'a' tags
+ 3- The 'date' data are located inside 'span' tags
+ 4- The 'category' data are located inside 'li' tagas with attribute: 'class_ = "display-inline-block usa-tag text-no-lowercase text-base-darkest bg-base-lightest margin-right-1"'.
+We will retrive each of them separately and then append them into a tidy dataframe
+
+Now, we will retrieve the list of links first.
+
+```{python}
+list_links_ongoing = list_enforce_firstpage[0].find_all('a') # Extracting the 'a' tags
+list_links_final = [] # Initializing the list of links we will append
+for a_tags in list_links_ongoing:
+  a_link_partial = a_tags.get('href') # We have noticed that the links are partial links
+  a_link_complete = 'https://oig.hhs.gov' + a_link_partial
+  list_links_final.append(a_link_complete)
+```
+
+As mentioned before, we can also extract the title of each of the list elements by using the same 'a' tags
+
+```{python}
+list_title_final = [] # Initializing the list of titles we will append
+for a_tags in list_links_ongoing:
+  title_text = a_tags.text
+  list_title_final.append(title_text)
+```
+
+The dates are located in a 'span' tag. We will extract the text first and then convert those texts to date type data.
+
+```{python}
+# Extracting the 'span' tags from our 'ul' list
+list_dates_ongoing = list_enforce_firstpage[0].find_all('span')
+list_dates_final = [] # Initializing the list of dates we will append
+for span_tags in list_dates_ongoing:
+  date_text = span_tags.text
+  list_dates_final.append(date_text)
+
+# Now let's change the format of the dates text to later transform it into a date data type
+# We will replace all the space by "/" and remove all the "," to have a uniform format.
+
+for index in range(len(list_dates_final)):
+  list_dates_final[index] = list_dates_final[index].replace(' ', '/')
+  list_dates_final[index] = list_dates_final[index].replace(',', '')
+
+# Now let's convert the month name into month rank number
+for index in range(len(list_dates_final)):
+  if list_dates_final[index].startswith('November'):
+    list_dates_final[index] = list_dates_final[index].replace('November', '11')
+  elif list_dates_final[index].startswith('October'):
+    list_dates_final[index] = list_dates_final[index].replace('October', '10')
+  else:
+    pass
+
+list_dates_final
+```
+
+```{python}
+a = 'Manman'
+
+a.replace('an', 'SSASA')
+```
+
+  
+### 2. Crawling (PARTNER 1)
+
+```{python}
+
+```
+
+## Step 2: Making the scraper dynamic
+
+### 1. Turning the scraper into a function 
+
+* a. Pseudo-Code (PARTNER 2)
+
+
+* b. Create Dynamic Scraper (PARTNER 2)
+
+```{python}
+
+```
+
+* c. Test Partner's Code (PARTNER 1)
+
+```{python}
+
+```
+
+## Step 3: Plot data based on scraped data
+
+### 1. Plot the number of enforcement actions over time (PARTNER 2)
+
+```{python}
+
+```
+
+### 2. Plot the number of enforcement actions categorized: (PARTNER 1)
+
+* based on "Criminal and Civil Actions" vs. "State Enforcement Agencies"
+
+```{python}
+
+```
+
+* based on five topics
+
+```{python}
+
+```
+
+## Step 4: Create maps of enforcement activity
+
+### 1. Map by State (PARTNER 1)
+
+```{python}
+
+```
+
+
+### 2. Map by District (PARTNER 2)
+
+```{python}
+
+```
+
+## Extra Credit
+
+### 1. Merge zip code shapefile with population
+```{python}
+
+```
+
+### 2. Conduct spatial join
+```{python}
+
+```
+
+### 3. Map the action ratio in each district
+```{python}
+
+```
