@@ -232,6 +232,12 @@ enforcement_action_data['agency_enforcement'] = list_agency_final
 #
 #
 #
+#
+#
+#
+#
+#
+#
 # Base path for the enforcement action webpages
 hhsoig_enforcement_page = r'https://oig.hhs.gov/fraud/enforcement/?page='
 
@@ -271,7 +277,7 @@ def crawl_enforcement_data(year, month):
   rank_month = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] # For future conversion
 
   # Finding the number of pages we will iterate for our crawling
-  time.sleep(2) # Adding 2 seconds waitto prevent potential server-side block.
+  time.sleep(1) # Adding 2 seconds waitto prevent potential server-side block.
   page_numbers = hhsoig_enforce_content.find_all('a', class_ = "pagination__link")  
   last_page_contents = page_numbers[-1].text # Last page text always last index
   last_page = '' # Initializing the object that will store the last page string.
@@ -281,14 +287,28 @@ def crawl_enforcement_data(year, month):
   last_page = int(last_page) # Converting the last page into an int type
 
   # Creating the foor loop to extract the data using the crawl
-  for page_number in range(1,last_page + 1):
+  for page_number in range(1, 3):
     page_link = hhsoig_enforcement_page + str(page_number)
-    time.sleep(2) # Adding 2 seconds wait before going to the next page to prevent potential server-side block.
+    time.sleep(1) # Adding 2 seconds wait before going to the next page to prevent potential server-side block.
     page_path = requests.get(page_link)
     page_contents = BeautifulSoup(page_path.content, 'lxml')
     unordered_box = page_contents.find_all('ul', class_ = "usa-card-group padding-y-0") # Remember! All the info we need is contained in this unordered box list
     ####      
-    # Extracting the data starting with the dates to filter.
+    # Extracting the titles for each enforcement
+    links_and_titles = unordered_box[0].find_all('a')
+    for a_tags in links_and_titles:
+      title_text = a_tags.text
+      titles_final.append(title_text)
+
+    # Extracting the links
+    links_temporary = [] # This will become handy when retrieving the agencies
+    for a_tags in links_and_titles:
+      a_link_partial = a_tags.get('href') # Only the partial links
+      a_link_complete = 'https://oig.hhs.gov' + a_link_partial
+      links_temporary.append(a_link_complete)
+      links_final.append(a_link_complete)
+    
+    # Extracting the dates
     all_dates = unordered_box[0].find_all('span')
     list_dates_temp = [] # Temporary container for the dates
     for span_tags in all_dates: # Extracting all dates for this page
@@ -303,31 +323,60 @@ def crawl_enforcement_data(year, month):
       list_dates_temp[index] = list_dates_temp[index].replace(month_name, rank_month[index_month])
     for index in range(len(list_dates_temp)): # Converting into date type
       list_dates_temp[index] = datetime.datetime.strptime(list_dates_temp[index], '%m/%d/%Y')
+    for date in list_dates_temp:
+      dates_final.append(date)
+    
+    # Extracting the categories
+    # For categories, we will do different than Section 1
+    for link in links_temporary:
+      time.sleep(1) # Adding 2 seconds wait before going to the next page to prevent potential server-side block.
+      enforcement_retrived = requests.get(link)
+      enforcement_content = BeautifulSoup(enforcement_retrived.content, 'lxml')
+      category_box = enforcement_content.find_all('li', class_ = "display-inline") # This class is unique to the 'li' tag for enforcement type
+      category_box_items = [li.text for li in category_box]
+      category_text = ' -&- '.join(category_box_items) # Joining categories
+      category_text = category_text.replace('\n', '') # Cleaning
+      category_text = ' '.join(category_text.split()) # To remove multiple blank space
+      category_text = category_text.replace(', -&- ', ' -&- ') # Cleaning
+      categories_final.append(category_text)
+    
+    # Extracting the agencies
+    # We will create another crawl inside the crawl to retrieve the agency name for each enforcement action on each page
+    for link in links_temporary:
+      time.sleep(2) # Adding 2 seconds wait before going to the next page to prevent potential server-side block.
+      enforcement_retrived = requests.get(link)
+      enforcement_content = BeautifulSoup(enforcement_retrived.content, 'lxml')
+      box_agency = enforcement_content.find_all('ul', class_ = "usa-list usa-list--unstyled margin-y-2")
+      agency_info_prelim = box_agency[0].find_all('li')[1].text
+      agency_info_final = agency_info_prelim.replace('Agency:', '')
+      agencies_final.append(agency_info_final)
 
+  # We have all the list filled, we can create the tidy dataframe now
+  enforcement_data_after2013 = pd.DataFrame({
+    'title_enforcement' : titles_final,
+    'date_enforcement' : dates_final,
+    'agency_enforcement' : agencies_final,
+    'category_enforcement' : categories_final,
+    'link_enforcement' : links_final
+  })
+
+  # Now creating the filtered data frame
+  first_day_of_month = str(month) + '/1/' + str(year) # Generating a date object as reference to better filter
+  first_day_of_month = datetime.datetime.strptime(first_day_of_month, '%m/%d/%Y')
+  filter_condition = enforcement_data_after2013['date_enforcement'] >= first_day_of_month
+  enforcement_data_filtered = enforcement_data_after2013[filter_condition]
+
+  # Returning final filtered dataframe
+  return enforcement_data_filtered
+#
+#
+#
+#
 
 #
 #
 #
 #
-crawl_enforcement_data(2022, 12)
-#
-#
-#
-#
-
-last_page + 1
-
-#
-#
-#
-#
-#
-#
-
-#
-#
-#
-#
 #
 
 #
@@ -337,8 +386,7 @@ last_page + 1
 #
 #
 #
-a = 'aams'
-ra
+
 #
 #
 #
