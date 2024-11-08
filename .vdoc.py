@@ -54,10 +54,11 @@ import altair as alt
 import geopandas as gpd
 import shapely
 import bs4
-from bs4 import BeautifulSoup
 import requests
 import warnings
+import sys # We will use this to exit our if statement
 import numpy as np
+from bs4 import BeautifulSoup
 from shapely import Polygon, Point
 from numpy import mean, nan # PS: Some version of numpy only consider NaN. So graders should consider this when this chunk of code is ran.
 alt.renderers.enable("png")
@@ -212,6 +213,116 @@ enforcement_action_data['agency_enforcement'] = list_agency_final
 #
 #
 #
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+# Base path for the enforcement action webpages
+hhsoig_enforcement_page = r'https://oig.hhs.gov/fraud/enforcement/?page='
+
+# This function is going to be long. So sorry for the graders!
+
+def crawl_enforcement_data(year, month):
+  # Verifying validity for month
+  if type(month) != int:
+    print('TypeError: Argument "month" only accepts int type.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  elif month < 1 or month > 12:
+    print('RangeError: Argument "month" only accepts values from 0 to 12.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  else:
+    pass
+
+  # Verifying validity for year
+  if type(year) != int:
+    print('TypeError: Argument "year" only accepts int type.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  elif len(str(year)) != 4:
+    print('FormatError: Please enter the "year" in the correct format (e.g. 1804)\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  elif year < 2013 or  year > int(datetime.datetime.now().year):
+    print(f'RangeError: Argument "year" only accepts values from 2013 to {int(datetime.datetime.now().year)}.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit()
+  else:
+    pass
+
+  # Iniatizaling the lists that will serve to append the tidy dataframe
+  titles_final = []
+  dates_final = []
+  categories_final= []
+  links_final = []
+  agencies_final = []
+  list_months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] # This will be handy for conversion
+  rank_month = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] # For future conversion
+
+  # Finding the number of pages we will iterate for our crawling
+  time.sleep(2) # Adding 2 seconds waitto prevent potential server-side block.
+  page_numbers = hhsoig_enforce_content.find_all('a', class_ = "pagination__link")  
+  last_page_contents = page_numbers[-1].text # Last page text always last index
+  last_page = '' # Initializing the object that will store the last page string.
+  for string in last_page_contents: #  Cleaning to find the correct text
+    if string.isdigit():
+      last_page = last_page + string
+  last_page = int(last_page) # Converting the last page into an int type
+
+  # Creating the foor loop to extract the data using the crawl
+  for page_number in range(1,last_page + 1):
+    page_link = hhsoig_enforcement_page + str(page_number)
+    time.sleep(2) # Adding 2 seconds wait before going to the next page to prevent potential server-side block.
+    page_path = requests.get(page_link)
+    page_contents = BeautifulSoup(page_path.content, 'lxml')
+    unordered_box = page_contents.find_all('ul', class_ = "usa-card-group padding-y-0") # Remember! All the info we need is contained in this unordered box list
+    ####      
+    # Extracting the data starting with the dates to filter.
+    all_dates = unordered_box[0].find_all('span')
+    list_dates_temp = [] # Temporary container for the dates
+    for span_tags in all_dates: # Extracting all dates for this page
+      date_text = span_tags.text
+      list_dates_temp.append(date_text)
+    for index in range(len(list_dates_temp)): # Cleaning the dates
+      list_dates_temp[index] = list_dates_temp[index].replace(' ', '/')
+      list_dates_temp[index] = list_dates_temp[index].replace(',', '')
+    for index in range(len(list_dates_temp)): # To convert month name into month rank
+      month_name = list_dates_temp[index].split('/')[0] # To find month name of the date
+      index_month = list_months.index(month_name) # The list of months came handy
+      list_dates_temp[index] = list_dates_temp[index].replace(month_name, rank_month[index_month])
+    for index in range(len(list_dates_temp)): # Converting into date type
+      list_dates_temp[index] = datetime.datetime.strptime(list_dates_temp[index], '%m/%d/%Y')
+
+
+#
+#
+#
+#
+crawl_enforcement_data(2022, 12)
+#
+#
+#
+#
+
+last_page + 1
+
+#
+#
+#
+#
+#
+#
 
 #
 #
@@ -226,7 +337,8 @@ enforcement_action_data['agency_enforcement'] = list_agency_final
 #
 #
 #
-
+a = 'aams'
+ra
 #
 #
 #

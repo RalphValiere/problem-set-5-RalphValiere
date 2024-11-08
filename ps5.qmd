@@ -1,7 +1,7 @@
 ---
-title: "title"
-author: "author"
-date: "date"
+title: "Problem Set 5 - DAP II"
+author: "Ralph Valery Valiere"
+date: "11/09/2024"
 format: 
   pdf:
     include-in-header: 
@@ -52,10 +52,11 @@ import altair as alt
 import geopandas as gpd
 import shapely
 import bs4
-from bs4 import BeautifulSoup
 import requests
 import warnings
+import sys # We will use this to exit our if statement
 import numpy as np
+from bs4 import BeautifulSoup
 from shapely import Polygon, Point
 from numpy import mean, nan # PS: Some version of numpy only consider NaN. So graders should consider this when this chunk of code is ran.
 alt.renderers.enable("png")
@@ -197,12 +198,124 @@ Let's append the list of agencies to the dataframe now.
 enforcement_action_data['agency_enforcement'] = list_agency_final
 ```
 
-
 ## Step 2: Making the scraper dynamic
+
+To make the scraper dynamic, we will write a function that takes as input
+a month and a year, and then pulls and formats the enforcement actions starting from that month+year to today.
+
+The issue is the enforcement action website has several pages and when inspecting, it only give the html code for only the specific page we are on. However, we found something tha could help us.
+
+In the link for each page, there is a specific string that mention the page number. For example, the link for the first page is "https://oig.hhs.gov/fraud/enforcement/?page=1", while the link for the last page is "https://oig.hhs.gov/fraud/enforcement/?page=480". At the moment we are writing this code, there are 480 pages on the website. However, since the website is dynamic, the number page might increased, we will make sure we find this number first before iterating over the number of pages.
+By changing the last digit on the link, we can then directly access each ot those pages and avoid to retrieve those links manually. This is going to be fun!!!!!!
 
 ### 1. Turning the scraper into a function 
 
 * a. Pseudo-Code (PARTNER 2)
+
+First, let's write the pseudo code for this function
+
+1. Define the two arguments that will be provided (month and year). Both arguments will only be "int" type (less risk of make typo than if we were requesting strings for the month)
+2. Use "if" statement to check if month is "int" type, is in the correct format or the correct range (Error message will be printed if not and code will break. Anyone calling the function will need to start over! Oh my God! This is so fuuuunn!)
+3. If month-argument type test passed, use another "if" statement to check if year is "int" type, is in the correct format and if year >= 2013. Print Error message if not and code will break. Anyone calling the function will need to start over!
+4. Initialize the five list that will contain data about 'title_enforcement', 'date_enforcement', 'category_enforcement', 'link_enforcement', and 'agency_enforcement'.
+5. We will retrieve the number of pages firs to now exactly on how many links we will reiterate for our crawling.
+It's good thing that we found that the last page is always displayed on any page of the website and the content is stored in a "a" tag, with one of its attributes being 'class="pagination__link"'. This will prevent our code from breaking whenever its ran in a different day as the website updates daily.
+6. Start the "for loop" by requesting and extractiong the data from each of the 480 pages, using request and Beautiful Soup
+  6.1 Inside the "for loop", Extract first the 'dates' for each enforcement action using the same method used in previous. We extract the date first, as this will help filter by considering only data as recent as the month and year provided.
+  6.2 Use an "if" statement to check if the date is older the the month and year provide as arguments. This will help extract only the date that at least recent as the month and year provided.
+  Inside this "if" statement, we will not use "return" to end the if statement, but "pass" instead, when a date is older than the month and year provided. Although the computation time will be much higher, it's a precautiona as we are not sure if the elements on all the pages are ordered by date (even though it seems so).
+    6.2.1 Extract date and append it to its respective list if the date is at least as recent as the month and year provided.
+    6.2.2 Extract the titles, categories, links and agencies for each enforcement action and append them to their respective list using the same method used in previous. We are continuing inside the last "if" loop to guarantee that we will only extract information for which the date is at least as recent as the month and year provided as arguments.
+7. Append all the completed list into the final tidy dataframe
+8. Return this dataframe as the final result of the function
+
+```{python}
+# Base path for the enforcement action webpages
+hhsoig_enforcement_page = r'https://oig.hhs.gov/fraud/enforcement/?page='
+
+# This function is going to be long. So sorry for the graders!
+
+def crawl_enforcement_data(year, month):
+  # Verifying validity for month
+  if type(month) != int:
+    print('TypeError: Argument "month" only accepts int type.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  elif month < 1 or month > 12:
+    print('RangeError: Argument "month" only accepts values from 0 to 12.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  else:
+    pass
+
+  # Verifying validity for year
+  if type(year) != int:
+    print('TypeError: Argument "year" only accepts int type.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  elif len(str(year)) != 4:
+    print('FormatError: Please enter the "year" in the correct format (e.g. 1804)\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit() # This will exit the code and not run any other lines.
+  elif year < 2013 or  year > int(datetime.datetime.now().year):
+    print(f'RangeError: Argument "year" only accepts values from 2013 to {int(datetime.datetime.now().year)}.\nThis is Ralph predefined error message. Another message will also be displayed after exiting the system. Please ignore message "SystemExit"')
+    sys.exit()
+  else:
+    pass
+
+  # Iniatizaling the lists that will serve to append the tidy dataframe
+  titles_final = []
+  dates_final = []
+  categories_final= []
+  links_final = []
+  agencies_final = []
+  list_months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] # This will be handy for conversion
+  rank_month = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] # For future conversion
+
+  # Finding the number of pages we will iterate for our crawling
+  time.sleep(2) # Adding 2 seconds waitto prevent potential server-side block.
+  page_numbers = hhsoig_enforce_content.find_all('a', class_ = "pagination__link")  
+  last_page_contents = page_numbers[-1].text # Last page text always last index
+  last_page = '' # Initializing the object that will store the last page string.
+  for string in last_page_contents: #  Cleaning to find the correct text
+    if string.isdigit():
+      last_page = last_page + string
+  last_page = int(last_page) # Converting the last page into an int type
+
+  # Creating the foor loop to extract the data using the crawl
+  for page_number in range(1,last_page + 1):
+    page_link = hhsoig_enforcement_page + str(page_number)
+    time.sleep(2) # Adding 2 seconds wait before going to the next page to prevent potential server-side block.
+    page_path = requests.get(page_link)
+    page_contents = BeautifulSoup(page_path.content, 'lxml')
+    unordered_box = page_contents.find_all('ul', class_ = "usa-card-group padding-y-0") # Remember! All the info we need is contained in this unordered box list
+    ####      
+    # Extracting the data starting with the dates to filter.
+    all_dates = unordered_box[0].find_all('span')
+    list_dates_temp = [] # Temporary container for the dates
+    for span_tags in all_dates: # Extracting all dates for this page
+      date_text = span_tags.text
+      list_dates_temp.append(date_text)
+    for index in range(len(list_dates_temp)): # Cleaning the dates
+      list_dates_temp[index] = list_dates_temp[index].replace(' ', '/')
+      list_dates_temp[index] = list_dates_temp[index].replace(',', '')
+    for index in range(len(list_dates_temp)): # To convert month name into month rank
+      month_name = list_dates_temp[index].split('/')[0] # To find month name of the date
+      index_month = list_months.index(month_name) # The list of months came handy
+      list_dates_temp[index] = list_dates_temp[index].replace(month_name, rank_month[index_month])
+    for index in range(len(list_dates_temp)): # Converting into date type
+      list_dates_temp[index] = datetime.datetime.strptime(list_dates_temp[index], '%m/%d/%Y')
+
+
+```
+
+
+```{python}
+crawl_enforcement_data(2022, 12)
+```
+
+
+```{python}
+
+last_page + 1
+
+```
 
 
 * b. Create Dynamic Scraper (PARTNER 2)
@@ -222,7 +335,8 @@ enforcement_action_data['agency_enforcement'] = list_agency_final
 ### 1. Plot the number of enforcement actions over time (PARTNER 2)
 
 ```{python}
-
+a = 'aams'
+ra
 ```
 
 ### 2. Plot the number of enforcement actions categorized: (PARTNER 1)
