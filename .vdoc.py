@@ -285,7 +285,7 @@ def crawl_enforcement_data(year, month):
   last_page = int(last_page) # Converting the last page into an int type
 
   # Creating the foor loop to extract the data using the crawl
-  for page_number in range(1, 10):
+  for page_number in range(1, last_page + 1):
     page_link = hhsoig_enforcement_page + str(page_number)
     time.sleep(1) # Adding 2 seconds wait to prevent potential server-side block.
     page_path = requests.get(page_link)
@@ -430,7 +430,7 @@ def crawl_enforcement_data(year, month):
 #
 #
 #
-enforcement_since_2023 = crawl_enforcement_data(2024, 11)
+enforcement_since_2023 = crawl_enforcement_data(2023, 1)
 
 print(f'There are {len(enforcement_since_2023)} enforcement actions in our final dataframe')
 
@@ -467,8 +467,7 @@ print('Please also note that in some case, there might be several enforcement at
 #
 #
 #
-
-enforcement_since_2021 = crawl_enforcement_data(2024, 9)
+enforcement_since_2021 = crawl_enforcement_data(2021, 1)
 
 print(f'There are {len(enforcement_since_2021)} enforcement actions in our final dataframe')
 #
@@ -723,7 +722,7 @@ legends = plt.legend(
   title_fontsize = '13',
   fontsize = '10',
   loc = 'right',
-  bbox_to_anchor = (1.5, 0.5)
+  bbox_to_anchor = (1.2, 0.5)
 )
 legends.get_title().set_rotation(90)
 plt.gcf().set_facecolor('lightgray')
@@ -785,10 +784,10 @@ plt.title(
 )
 legends = plt.legend(
   title ='Number of enforcement',
-  title_fontsize = '13',
-  fontsize = '10',
+  title_fontsize = '20',
+  fontsize = '15',
   loc = 'right',
-  bbox_to_anchor = (1.5, 0.5)
+  bbox_to_anchor = (1.2, 0.5)
 )
 legends.get_title().set_rotation(90)
 plt.gcf().set_facecolor('lightgray')

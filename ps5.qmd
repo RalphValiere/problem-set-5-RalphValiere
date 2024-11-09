@@ -283,7 +283,7 @@ def crawl_enforcement_data(year, month):
   last_page = int(last_page) # Converting the last page into an int type
 
   # Creating the foor loop to extract the data using the crawl
-  for page_number in range(1, 10):
+  for page_number in range(1, last_page + 1):
     page_link = hhsoig_enforcement_page + str(page_number)
     time.sleep(1) # Adding 2 seconds wait to prevent potential server-side block.
     page_path = requests.get(page_link)
