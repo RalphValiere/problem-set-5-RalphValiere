@@ -1,0 +1,39 @@
+Prompt given to Perplexity:
+
+Create python lists of 20 key words specific to each of those categories of enforcement actions: “Health Care Fraud”, “Financial Fraud”, “Drug Enforcement”, “Bribery/Corruption”.
+Make sure that there are no common keyword in those lists.
+Don't add underscore (_) in the keywords
+First letter of each element in the list is uppercase
+Include specific word in the name of the category in the list too
+
+----
+
+Output of Perplexity
+
+health_care_fraud_keywords = [
+    "Healthcare", "Medicare", "Medicaid", "Overbilling", "Upcoding", 
+    "Unbundling", "Phantom", "Kickback", "Prescription", "Diagnosis", 
+    "Unnecessary", "Falsification", "Billing", "Claims", "Reimbursement", 
+    "Beneficiary", "Durable", "Hospice", "Telemedicine", "Copayment"
+]
+
+financial_fraud_keywords = [
+    "Financial", "Embezzlement", "Ponzi", "Securities", "Insider", 
+    "Mortgage", "Identity", "Bankruptcy", "Laundering", "Wire", 
+    "Accounting", "Pump", "Dump", "Predatory", "Lending", 
+    "Falsifying", "Credit", "Check", "Investment", "Skimming"
+]
+
+drug_enforcement_keywords = [
+    "Narcotics", "Trafficking", "Smuggling", "Cartel", "Controlled", 
+    "Substances", "Opioid", "Fentanyl", "Methamphetamine", "Cocaine", 
+    "Heroin", "Prescription", "Manufacturing", "Distribution", "Addiction", 
+    "Seizure", "Enforcement", "Illicit", "Cultivation", "Synthetic"
+]
+
+bribery_corruption_keywords = [
+    "Bribery", "Corruption", "Extortion", "Kickbacks", "Collusion", 
+    "Nepotism", "Cronyism", "Graft", "Embezzlement", "Misappropriation", 
+    "Clientelism", "Favoritism", "Lobbying", "Influence", "Peddling", 
+    "Slush", "Patronage", "Kleptocracy", "Malfeasance", "Quid"
+]
