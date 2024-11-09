@@ -70,7 +70,6 @@ warnings.filterwarnings('ignore')
 #
 #
 #
-#
 hhsoig_enforce_path = r'https://oig.hhs.gov/fraud/enforcement/'
 
 hhsoig_enforce_retrived = requests.get(hhsoig_enforce_path)
@@ -286,7 +285,7 @@ def crawl_enforcement_data(year, month):
   last_page = int(last_page) # Converting the last page into an int type
 
   # Creating the foor loop to extract the data using the crawl
-  for page_number in range(1, 20):
+  for page_number in range(1, 10):
     page_link = hhsoig_enforcement_page + str(page_number)
     time.sleep(1) # Adding 2 seconds wait to prevent potential server-side block.
     page_path = requests.get(page_link)
@@ -435,9 +434,17 @@ enforcement_since_2023 = crawl_enforcement_data(2024, 11)
 
 print(f'There are {len(enforcement_since_2023)} enforcement actions in our final dataframe')
 
-
 # Saving the dataframe into a .csv file
 enforcement_since_2023.to_csv('N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere/enforcement_actions_2023_january.csv', index = False) 
+#
+#
+#
+#
+#
+base_path = "N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere"
+file_path = os.path.join(base_path, 'enforcement_actions_2023_january.csv')
+
+enforcement_since_2023 = pd.read_csv(file_path)
 #
 #
 #
@@ -454,12 +461,14 @@ print('The details for the earliest enforcement is:\n',
 'catergory: ', details_earliest_2023after['category_enforcement'], '\n',
 'link: ', details_earliest_2023after['link_enforcement'], '\n'
 )
+print('Please also note that in some case, there might be several enforcement at the earliest dates.\nIn those cases, this program will only pick just one of the earliest cases.')
 #
 #
 #
 #
 #
-enforcement_since_2021 = crawl_enforcement_data(2024, 6)
+
+enforcement_since_2021 = crawl_enforcement_data(2024, 9)
 
 print(f'There are {len(enforcement_since_2021)} enforcement actions in our final dataframe')
 #
@@ -474,10 +483,15 @@ enforcement_since_2021.to_csv('N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION 
 #
 #
 #
-############################################################################
-##### Remember to change this code to adapt it to the 2023 real dataset ####
-############################################################################
+base_path = "N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere"
+file_path = os.path.join(base_path, 'enforcement_actions_2021_january.csv')
 
+enforcement_since_2021 = pd.read_csv(file_path)
+#
+#
+#
+#
+#
 print(f'The date for the earliest enforcement action scraped is: {min(enforcement_since_2021['date_enforcement'])}')
 
 # Finding the detail for this enforcement
@@ -489,6 +503,7 @@ print('The details for the earliest enforcement is:\n',
 'catergory: ', details_earliest_2021after['category_enforcement'], '\n',
 'link: ', details_earliest_2021after['link_enforcement'], '\n'
 )
+print('Please also note that in some case, there might be several enforcement at the earliest dates.\nIn those cases, this program will only pick just one of the earliest cases.')
 #
 #
 #
@@ -693,7 +708,7 @@ agency_with_state_geo = gpd.GeoDataFrame(agency_with_state_geo, geometry = 'geom
 fig, graph_enforcement_ax = plt.subplots(figsize=(12, 6))
 graph_enforcement_perstate = agency_with_state_geo.plot(
   column = 'number_enforcement',
-  cmap = 'plasma',
+  cmap = 'viridis',
   legend = True,
   ax = graph_enforcement_ax
 )
@@ -786,7 +801,6 @@ graph_enforcement_perdistrict
 #
 #
 #
-
 #
 #
 #

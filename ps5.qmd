@@ -25,14 +25,14 @@ output:
 **Due 11/9 at 5:00PM Central. Worth 100 points + 10 points extra credit.**
 
 ## Submission Steps (10 pts)
-1. This problem set is a paired problem set.
-2. Play paper, scissors, rock to determine who goes first. Call that person *Partner 1*.
-    - Partner 1 (name and cnet ID):
-    - Partner 2 (name and cnet ID):
+1. This problem set is a paired problem set. But Ralph submitted alone
+2. Play paper, scissors, rock to determine who goes first. Call that person *Partner 1*. (Not necessary)
+    - Partner 1 (name and cnet ID): Ralph Valery Valiere (ralphvaleryv)
+    - Partner 2 (name and cnet ID): None
 3. Partner 1 will accept the `ps5` and then share the link it creates with their partner. You can only share it with one partner so you will not be able to change it after your partner has accepted. 
-4. "This submission is our work alone and complies with the 30538 integrity policy." Add your initials to indicate your agreement: \*\*\_\_\*\* \*\*\_\_\*\*
+4. "This submission is our work alone and complies with the 30538 integrity policy." Add your initials to indicate your agreement: RVV \*\*\_\_\*\* \*\*\_\_\*\*
 5. "I have uploaded the names of anyone else other than my partner and I worked with on the problem set **[here](https://docs.google.com/forms/d/185usrCREQaUbvAXpWhChkjghdGgmAZXA3lPWpXLLsts/edit)**"  (1 point)
-6. Late coins used this pset: \*\*\_\_\*\* Late coins left after submission: \*\*\_\_\*\*
+6. Late coins used this pset: 1 \*\*\_\_\*\* Late coins left after submission: 2 \*\*\_\_\*\*
 7. Knit your `ps5.qmd` to an PDF file to make `ps5.pdf`, 
     * The PDF should not be more than 25 pages. Use `head()` and re-size figures when appropriate. 
 8. (Partner 1): push  `ps5.qmd` and `ps5.pdf` to your github repo.
@@ -62,7 +62,6 @@ from numpy import mean, nan # PS: Some version of numpy only consider NaN. So gr
 alt.renderers.enable("png")
 warnings.filterwarnings('ignore')
 ```
-
 
 ## Step 1: Develop initial scraper and crawler
 
@@ -284,7 +283,7 @@ def crawl_enforcement_data(year, month):
   last_page = int(last_page) # Converting the last page into an int type
 
   # Creating the foor loop to extract the data using the crawl
-  for page_number in range(1, 20):
+  for page_number in range(1, 10):
     page_link = hhsoig_enforcement_page + str(page_number)
     time.sleep(1) # Adding 2 seconds wait to prevent potential server-side block.
     page_path = requests.get(page_link)
@@ -429,13 +428,21 @@ def crawl_enforcement_data(year, month):
 With the function that we built, let's start collecting the enforcement actions since January 2023
 
 ```{python}
-enforcement_since_2023 = crawl_enforcement_data(2024, 11)
+enforcement_since_2023 = crawl_enforcement_data(2023, 1)
 
 print(f'There are {len(enforcement_since_2023)} enforcement actions in our final dataframe')
 
-
 # Saving the dataframe into a .csv file
 enforcement_since_2023.to_csv('N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere/enforcement_actions_2023_january.csv', index = False) 
+```
+
+Since we have already scrapped and save the data, we will not evaluate the previous code when knitting. We will use the saved .csv file instead. This is only for knitting purpose.
+
+```{python}
+base_path = "N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere"
+file_path = os.path.join(base_path, 'enforcement_actions_2023_january.csv')
+
+enforcement_since_2023 = pd.read_csv(file_path)
 ```
 
 Based on those results, we can find the details for the earliest enforcement in our dataframe.
@@ -452,12 +459,13 @@ print('The details for the earliest enforcement is:\n',
 'catergory: ', details_earliest_2023after['category_enforcement'], '\n',
 'link: ', details_earliest_2023after['link_enforcement'], '\n'
 )
+print('Please also note that in some case, there might be several enforcement at the earliest dates.\nIn those cases, this program will only pick just one of the earliest cases.')
 ```
 
-* c. Let's test our dynamic scraper function by collecting the actions since January 2021. (This will indeed take time again)
+* c. Let's test our dynamic scraper function by collecting the actions since January 2021. (This will indeed take time again).
 
 ```{python}
-enforcement_since_2021 = crawl_enforcement_data(2024, 6)
+enforcement_since_2021 = crawl_enforcement_data(2021, 1)
 
 print(f'There are {len(enforcement_since_2021)} enforcement actions in our final dataframe')
 ```
@@ -469,13 +477,18 @@ We have noticed that the "agency_enforcement" needs a bit of cleaning. However, 
 enforcement_since_2021.to_csv('N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere/enforcement_actions_2021_january.csv', index = False) 
 ```
 
+Since we have already scrapped and save the data, we will not evaluate the previous code when knitting. We will use the saved .csv file instead. This is only for knitting purpose.
+
+```{python}
+base_path = "N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere"
+file_path = os.path.join(base_path, 'enforcement_actions_2021_january.csv')
+
+enforcement_since_2021 = pd.read_csv(file_path)
+```
+
 We can find the details for the earliest enforcement in this new dataframe.
 
 ```{python}
-############################################################################
-##### Remember to change this code to adapt it to the 2023 real dataset ####
-############################################################################
-
 print(f'The date for the earliest enforcement action scraped is: {min(enforcement_since_2021['date_enforcement'])}')
 
 # Finding the detail for this enforcement
@@ -487,6 +500,7 @@ print('The details for the earliest enforcement is:\n',
 'catergory: ', details_earliest_2021after['category_enforcement'], '\n',
 'link: ', details_earliest_2021after['link_enforcement'], '\n'
 )
+print('Please also note that in some case, there might be several enforcement at the earliest dates.\nIn those cases, this program will only pick just one of the earliest cases.')
 ```
 
 ## Step 3: Plot data based on scraped data
@@ -691,7 +705,7 @@ agency_with_state_geo = gpd.GeoDataFrame(agency_with_state_geo, geometry = 'geom
 fig, graph_enforcement_ax = plt.subplots(figsize=(12, 6))
 graph_enforcement_perstate = agency_with_state_geo.plot(
   column = 'number_enforcement',
-  cmap = 'plasma',
+  cmap = 'viridis',
   legend = True,
   ax = graph_enforcement_ax
 )
@@ -706,7 +720,7 @@ legends = plt.legend(
   title_fontsize = '13',
   fontsize = '10',
   loc = 'right',
-  bbox_to_anchor = (1.5, 0.5)
+  bbox_to_anchor = (1.2, 0.5)
 )
 legends.get_title().set_rotation(90)
 plt.gcf().set_facecolor('lightgray')
@@ -768,10 +782,10 @@ plt.title(
 )
 legends = plt.legend(
   title ='Number of enforcement',
-  title_fontsize = '13',
-  fontsize = '10',
+  title_fontsize = '20',
+  fontsize = '15',
   loc = 'right',
-  bbox_to_anchor = (1.5, 0.5)
+  bbox_to_anchor = (1.2, 0.5)
 )
 legends.get_title().set_rotation(90)
 plt.gcf().set_facecolor('lightgray')
