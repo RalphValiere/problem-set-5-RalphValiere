@@ -478,6 +478,7 @@ print(f'There are {len(enforcement_since_2021)} enforcement actions in our final
 #
 #
 #
+#| eval: false
 # Saving the dataframe into a .csv file
 enforcement_since_2021.to_csv('N:/3 MES DOSSIERS SECONDAIRES/MASTER PREPARATION PROGRAM/University of Chicago/DAP II/problem-set-5-RalphValiere/enforcement_actions_2021_january.csv', index = False) 
 #
@@ -821,71 +822,51 @@ for index in range(len(num_enforcement_district)):
 for index in range(len(usdistrict_geo_data)):
   district = usdistrict_geo_data['judicial_d'][index]
   if district == 'District of District of Columbia':
-    usdistrict_geo_data['judicial_d'][index] = 'District of Idaho'
+    usdistrict_geo_data['judicial_d'][index] = 'District of Columbia'
+# Data is fully cleaned now
 
-list_mismatched_name = [] # Resetting the container
-number_mismatch(num_enforcement_district, usdistrict_geo_data)
-# 
+# Export the geometry by merging and transforming "agency_with_district" into a geodataframe.
+agency_with_district_geo = num_enforcement_district.merge(
+  usdistrict_geo_data,
+  how = 'left',
+  left_on = 'district_enforcement',
+  right_on = 'judicial_d'
+)
+agency_with_district_geo = gpd.GeoDataFrame(agency_with_district_geo, geometry = 'geometry')
+
+# Let's plot now
+fig, graph_enforcement_ax = plt.subplots(figsize=(20, 12))
+graph_enforcement_perdistrict = agency_with_district_geo.plot(
+  column = 'number_enforcement',
+  cmap = 'plasma',
+  legend = True,
+  ax = graph_enforcement_ax
+)
+plt.axis("off")
+plt.title(
+  'Overall number of enforcement actions\nper district for 2021-2024',
+  fontsize = '40',
+  loc = 'center',
+  pad = 75
+)
+legends = plt.legend(
+  title ='Number of enforcement',
+  title_fontsize = '20',
+  fontsize = '15',
+  loc = 'right',
+  bbox_to_anchor = (1.2, 0.5)
+)
+legends.get_title().set_rotation(90)
+plt.gcf().set_facecolor('lightgray')
+graph_enforcement_perdistrict
 #
 #
 #
-list_mismatched_name
 #
-#
-#
-condition = ['Pennsylvania' in district for district in usdistrict_geo_data['judicial_d']]
-usdistrict_geo_data[condition]['judicial_d']
-#
-#
-#
-num_enforcement_district[num_enforcement_district['district_enforcement'] == 'Southern District of Pennsylvania']
 #
 #
 #
 
-```
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
 #
 #
 #
