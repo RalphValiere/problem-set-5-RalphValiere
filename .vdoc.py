@@ -58,6 +58,7 @@ import requests
 import warnings
 import sys # We will use this to exit our if statement
 import numpy as np
+from vega_datasets import data
 from bs4 import BeautifulSoup
 from shapely import Polygon, Point, MultiPolygon
 from numpy import mean, nan # PS: Some version of numpy only consider NaN. So graders should consider this when this chunk of code is ran.
@@ -430,6 +431,7 @@ def crawl_enforcement_data(year, month):
 #
 #
 #
+#| eval: false
 enforcement_since_2023 = crawl_enforcement_data(2023, 1)
 
 print(f'There are {len(enforcement_since_2023)} enforcement actions in our final dataframe')
@@ -467,6 +469,7 @@ print('Please also note that in some case, there might be several enforcement at
 #
 #
 #
+#| eval: false
 enforcement_since_2021 = crawl_enforcement_data(2021, 1)
 
 print(f'There are {len(enforcement_since_2021)} enforcement actions in our final dataframe')
@@ -692,13 +695,21 @@ num_enforcement_state = group_state.apply(lambda group: len(group))
 num_enforcement_state = num_enforcement_state.reset_index()
 num_enforcement_state.columns = ['state_enforcement', 'number_enforcement']
 
+# Before merging, let's check if all the states names in num_enforcement_state are also in state_geo_data. If there are difference in the way the state name is written, we will correct them to have them match. This will avoid generating missing values just because of thoses mismatch.
+all_state_in_geo = all(state in list(state_geo_data['NAME']) for state in list(num_enforcement_state['state_enforcement']))
+print(f'Results for checking if all state names in num_enforcement_state\nmatch the state name in state_geo_data: {all_state_in_geo}')
+
 # Importing the geometry by merging agency_with_state into a geodataframe
 agency_with_state_geo = num_enforcement_state.merge(
   state_geo_data,
-  how = 'left',
+  how = 'right',
   left_on = 'state_enforcement',
   right_on = 'NAME'
 )
+
+# Let's fill the missing values with 0. The rationale being is that if a cell end up having NaN after the merging, it only implies that this state didn't have any enforcement action in the period 2021-2021 because we already checked for mismatch of names and there were not.
+agency_with_state_geo['number_enforcement'] = agency_with_state_geo['number_enforcement'].fillna(0)
+agency_with_state_geo['number_enforcement'] = agency_with_state_geo['number_enforcement'].astype(int) # Converting from float to integer
 
 # Converting the new dataframe into a geo dataframe
 agency_with_state_geo = gpd.GeoDataFrame(agency_with_state_geo, geometry = 'geometry')
@@ -758,40 +769,115 @@ num_enforcement_district = group_disctrict.apply(lambda group: len(group))
 num_enforcement_district = num_enforcement_district.reset_index()
 num_enforcement_district.columns = ['district_enforcement', 'number_enforcement']
 
-# Export the geometry by merging and transforming "agency_with_district" into a geodataframe
-agency_with_district_geo = num_enforcement_district.merge(
-  usdistrict_geo_data,
-  how = 'left',
-  left_on = 'district_enforcement',
-  right_on = 'judicial_d'
-)
-agency_with_district_geo = gpd.GeoDataFrame(agency_with_district_geo, geometry = 'geometry')
+# Before merging, let's check if all the district names in num_enforcement_district are also in usdistrict_geo_data. If there are difference in the way the district name is written, we will correct them to have them match. This will avoid generating missing values just because of thoses mismatch.
+all_district_in_geo = all(district in list(usdistrict_geo_data['judicial_d']) for district in list(num_enforcement_district['district_enforcement']))
+print(f'Results for checking if all state names in num_enforcement_state\nmatch the state name in state_geo_data: {all_district_in_geo}')
+# There are mismatchs indeed.
 
-# Let's plot now
-fig, graph_enforcement_ax = plt.subplots(figsize=(20, 12))
-graph_enforcement_perdistrict = agency_with_district_geo.plot(
-  column = 'number_enforcement',
-  cmap = 'plasma',
-  legend = True,
-  ax = graph_enforcement_ax
-)
-plt.axis("off")
-plt.title(
-  'Overall number of enforcement actions\nper district for 2021-2024',
-  fontsize = '40',
-  loc = 'center',
-  pad = 75
-)
-legends = plt.legend(
-  title ='Number of enforcement',
-  title_fontsize = '20',
-  fontsize = '15',
-  loc = 'right',
-  bbox_to_anchor = (1.2, 0.5)
-)
-legends.get_title().set_rotation(90)
-plt.gcf().set_facecolor('lightgray')
-graph_enforcement_perdistrict
+# Let's check which districts have the mismatch
+list_mismatched_name = []
+  # Let's build the function to check the number of mismatch. We will use it often after cleaning the mismatch
+def number_mismatch(dataset1, dataset2):
+  for district in list(dataset1['district_enforcement']):
+    if district in list(dataset2['judicial_d']):
+      pass
+    else:
+      list_mismatched_name.append(district)
+  print(list_mismatched_name)
+  num_mismatch = len(list_mismatched_name)
+  return num_mismatch
+init_num_mismatch = number_mismatch(num_enforcement_district, usdistrict_geo_data) # To use as a reference to see if we are progressing in the cleaning process
+
+  # Let's start by removing the "†" in some of those names
+num_enforcement_district['district_enforcement'] = [district.replace(' †††', '') for district in num_enforcement_district['district_enforcement']]
+num_enforcement_district['district_enforcement'] = [district.replace(' ††', '') for district in num_enforcement_district['district_enforcement']]
+  # Removing "Inspector General" in some names
+num_enforcement_district['district_enforcement'] = [district.replace(' Inspector General', '') for district in num_enforcement_district['district_enforcement']]
+  # Removing 'U.S. Attorney’s Office' in the names
+for index in range(len(num_enforcement_district)):
+  district = num_enforcement_district['district_enforcement'][index]
+  district = district.replace('U.S. Attorney’s Office ', ',')
+  district = district.split(',')[-1]
+  num_enforcement_district['district_enforcement'][index] = district
+  # Cleaning for the case of "Pennsylvani"
+for index in range(len(num_enforcement_district)):
+  district = num_enforcement_district['district_enforcement'][index]
+  if district == 'Eastern District of Pennsylvani':
+    num_enforcement_district['district_enforcement'][index] = 'Eastern District of Pennsylvania'
+  # Now we left with 5 cases that doesn't have clear mismatch. We had to check in the usdistrict_geo_data to see if the problem is not there too. We found that:
+  # a- There is no District of Idaho Boise, just "District of Idaho"
+  # b- In the usdistrict_geo_data, instead of having District of Columbia, there was "District of District of Columbia"
+  # c- There are three different district in Florida. Since the number of enforcement for "District of Florida" is just one, we will reassign the name to any of those three district name.
+  # d- There is no "Southern District of Pennsylvania". Since the number of enforcement for "Southern District of Pennsylvania" is just one, we will reassign the name to any of those three district name in Pennsylvania.
+for index in range(len(num_enforcement_district)):
+  district = num_enforcement_district['district_enforcement'][index]
+  if district == 'District of Idaho Boise':
+    num_enforcement_district['district_enforcement'][index] = 'District of Idaho'
+  elif district == 'District of Florida':
+    num_enforcement_district['district_enforcement'][index] = 'Middle District of Florida'
+  elif district == 'Southern District of Pennsylvania':
+    num_enforcement_district['district_enforcement'][index] = 'Middle District of Pennsylvania'
+  # Let's complete this cleaning by solving the case of "District of Columbia"
+for index in range(len(usdistrict_geo_data)):
+  district = usdistrict_geo_data['judicial_d'][index]
+  if district == 'District of District of Columbia':
+    usdistrict_geo_data['judicial_d'][index] = 'District of Idaho'
+
+list_mismatched_name = [] # Resetting the container
+number_mismatch(num_enforcement_district, usdistrict_geo_data)
+# 
+#
+#
+#
+list_mismatched_name
+#
+#
+#
+condition = ['Pennsylvania' in district for district in usdistrict_geo_data['judicial_d']]
+usdistrict_geo_data[condition]['judicial_d']
+#
+#
+#
+num_enforcement_district[num_enforcement_district['district_enforcement'] == 'Southern District of Pennsylvania']
+#
+#
+#
+
+```
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
 #
 #
 #
